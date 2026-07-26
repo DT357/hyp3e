@@ -135,35 +135,37 @@ export async function buyFromMerchant(buyer, merchant, item) {
         : "";
 
     // Prompt for quantity to buy
-    const qty = await Dialog.prompt({
-        title: `${itemName} Purchase Quantity`,
+    const qty = await foundry.applications.api.DialogV2.prompt({
+        window: { title: `${itemName} Purchase Quantity` },
         content: `
             <p>${merchant.displayName} has <strong>${merchantQty}</strong> ${item.name}(s) in stock at <strong>${sellPrice}</strong> gp each.</p>
             <p>
                 <label>How many ${bundleAmt} to buy? (Max: ${maxQty})</label>
-                <input type="number" id="qty" min="1" max="${maxQty}" value="1" 
+                <input type="number" id="qty" name="qty" min="1" max="${maxQty}" value="1"
                     style="width:80px; text-align: center;">
             </p>
             <p id="total" style="font-weight:bold;">Total: ${sellPrice.toFixed(2)} gp</p>
         `,
-        label: "Buy",
-        callback: html => {
-            const val = parseInt(html.find("#qty").val() ?? "1");
-            if (isNaN(val) || val < 0) return 0;
-            return Math.clamp(val, 1, maxQty);
+        ok: {
+            label: "Buy",
+            callback: (_event, button) => {
+                const val = parseInt(button.form.elements.qty.value ?? "1");
+                if (isNaN(val) || val < 0) return 0;
+                return Math.clamp(val, 1, maxQty);
+            }
         },
         rejectClose: false,
-        render: html => {
-            const $input = html.find("#qty");
-            const $total = html.find("#total");
+        render: (_event, dialog) => {
+            const input = dialog.element.querySelector("#qty");
+            const totalElement = dialog.element.querySelector("#total");
             const updateTotal = () => {
-                const val = Number($input.val());
+                const val = Number(input.value);
                 const qty = Math.clamp(Math.floor(val || 1), 1, maxQty);
                 const total = Math.round(qty * sellPrice * 100) / 100;
-                $total.text(`Total: ${total.toFixed(2)} gp`);
+                totalElement.textContent = `Total: ${total.toFixed(2)} gp`;
             };
-            $input.on("input", updateTotal);
-            $input.focus();
+            input.addEventListener("input", updateTotal);
+            input.focus();
         }
     });
     if (!qty) return;
@@ -285,35 +287,37 @@ export async function sellToMerchant(merchant, seller, item) {
       return ui.notifications.warn(`${merchant.displayName} cannot afford ${buyPrice} gp.`);
     }
 
-    const qty = await Dialog.prompt({
-        title: `${itemName} Sell Quantity`,
+    const qty = await foundry.applications.api.DialogV2.prompt({
+        window: { title: `${itemName} Sell Quantity` },
         content: `
             <p>${seller.displayName} has <strong>${sellerQty}</strong> ${item.name}(s) to sell at <strong>${buyPrice}</strong> gp each.</p>
             <p>
                 <label>How many ${bundleAmt} to sell? (Max: ${maxQty})</label>
-                <input type="number" id="qty" min="1" max="${maxQty}" value="1" 
+                <input type="number" id="qty" name="qty" min="1" max="${maxQty}" value="1"
                     style="width:80px; text-align: center;">
             </p>
             <p id="total" style="font-weight:bold;">Total: ${buyPrice.toFixed(2)} gp</p>
         `,
-        label: "Sell",
-        callback: html => {
-            const val = parseInt(html.find("#qty").val() ?? "1");
-            if (isNaN(val) || val < 0) return 0;
-            return Math.clamp(val, 1, maxQty);
+        ok: {
+            label: "Sell",
+            callback: (_event, button) => {
+                const val = parseInt(button.form.elements.qty.value ?? "1");
+                if (isNaN(val) || val < 0) return 0;
+                return Math.clamp(val, 1, maxQty);
+            }
         },
         rejectClose: false,
-        render: html => {
-            const $input = html.find("#qty");
-            const $total = html.find("#total");
+        render: (_event, dialog) => {
+            const input = dialog.element.querySelector("#qty");
+            const totalElement = dialog.element.querySelector("#total");
             const updateTotal = () => {
-                const val = Number($input.val());
+                const val = Number(input.value);
                 const qty = Math.clamp(Math.floor(val || 1), 1, maxQty);
                 const total = Math.round(qty * buyPrice * 100) / 100;
-                $total.text(`Total: ${total.toFixed(2)} gp`);
+                totalElement.textContent = `Total: ${total.toFixed(2)} gp`;
             };
-            $input.on("input", updateTotal);
-            $input.focus();
+            input.addEventListener("input", updateTotal);
+            input.focus();
         }
     });
     if (!qty) return;
@@ -579,26 +583,27 @@ export async function transferFromActor(recipient, giver, item) {
   }
 
   // Prompt for quantity to transfer
-  const qty = await Dialog.prompt({
-    title: `${itemName} Transfer Quantity`,
+  const qty = await foundry.applications.api.DialogV2.prompt({
+    window: { title: `${itemName} Transfer Quantity` },
     content: `
       <p>${giver.displayName} has <strong>${giverQty}</strong> ${item.name}(s).</p>
       <p>
         <label>How many ${bundleAmt} to transfer? (Max: ${maxQty})</label>
-        <input type="number" id="qty" min="1" max="${maxQty}" value="1" 
+        <input type="number" id="qty" name="qty" min="1" max="${maxQty}" value="1"
           style="width:80px; text-align: center;">
       </p>
     `,
-    label: "Transfer",
-    callback: html => {
-      const val = parseInt(html.find("#qty").val() ?? "1");
-      if (isNaN(val) || val < 0) return 0;
-      return Math.clamp(val, 1, maxQty);
+    ok: {
+      label: "Transfer",
+      callback: (_event, button) => {
+        const val = parseInt(button.form.elements.qty.value ?? "1");
+        if (isNaN(val) || val < 0) return 0;
+        return Math.clamp(val, 1, maxQty);
+      }
     },
     rejectClose: false,
-    render: html => {
-      const $input = html.find("#qty");
-      $input.focus();
+    render: (_event, dialog) => {
+      dialog.element.querySelector("#qty").focus();
     }
   });
   if (!qty) return;
@@ -679,26 +684,27 @@ export async function transferCoinFromActor(recipient, giver, currency) {
   let giverAmount = toNumber(coin.value);
 
   // Prompt for amount to transfer
-  const amount = await Dialog.prompt({
-    title: `${coinLabel} Transfer Amount`,
+  const amount = await foundry.applications.api.DialogV2.prompt({
+    window: { title: `${coinLabel} Transfer Amount` },
     content: `
       <p>${giver.displayName} has <strong>${giverAmount}</strong> ${coinLabel}.</p>
       <p>
         <label>How many ${coinLabel} to transfer? (Max: ${giverAmount})</label>
-        <input type="number" id="amount" min="1" max="${giverAmount}" value="1" 
+        <input type="number" id="amount" name="amount" min="1" max="${giverAmount}" value="1"
           style="width:80px; text-align: center;">
       </p>
     `,
-    label: "Transfer",
-    callback: html => {
-      const val = parseInt(html.find("#amount").val() ?? "1");
-      if (isNaN(val) || val < 0) return 0;
-      return Math.clamp(val, 1, giverAmount);
+    ok: {
+      label: "Transfer",
+      callback: (_event, button) => {
+        const val = parseInt(button.form.elements.amount.value ?? "1");
+        if (isNaN(val) || val < 0) return 0;
+        return Math.clamp(val, 1, giverAmount);
+      }
     },
     rejectClose: false,
-    render: html => {
-      const $input = html.find("#amount");
-      $input.focus();
+    render: (_event, dialog) => {
+      dialog.element.querySelector("#amount").focus();
     }
   });
   if (!amount) return;

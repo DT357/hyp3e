@@ -2,6 +2,18 @@ import { HYP3E } from "./config.mjs"
 import { getRollModeChoices } from "./foundry-compat.mjs"
 import { Hyp3eLogger } from "./logger.mjs"
 
+function getRollDialogFormData(button) {
+  const formData = new foundry.applications.ux.FormDataExtended(button.form)
+  const formDataObj = formData.object
+  if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
+  return formDataObj
+}
+
+function requireDialogResult(result, dialogName) {
+  if (result !== null) return result
+  throw new Error(`${dialogName} canceled`)
+}
+
 export class Hyp3eDialog {
   /**
    * Handle item and ability check dialogs
@@ -23,43 +35,35 @@ export class Hyp3eDialog {
     const dialogHtml = await foundry.applications.handlebars.renderTemplate(template, dialogData)
 
     // Roll dialog for item and ability checks
-    return new Promise((resolve, reject) => {
-      const rollDialog = new Dialog({
-        title: `${dataset.label}`,
-        content: dialogHtml,
-        buttons: {
-          roll: {
-            icon: '<i class="fas fa-dice-d20"></i>',
-            label: dataset.rollButtonLabel,
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              if (CONFIG.HYP3E.flipRollUnderMods) {
-                Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Rolling ${dataset.roll} - ${formDataObj.sitMod}...`, formDataObj)
-              } else {
-                Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Rolling ${dataset.roll} + ${formDataObj.sitMod} ...`, formDataObj)
-              }
-              resolve(formDataObj)
-            }
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-            callback: (html) => {
-              Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Roll canceled!`)
-              reject()
-            }
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: `${dataset.label}` },
+      content: dialogHtml,
+      buttons: [{
+        action: "roll",
+        icon: "fas fa-dice-d20",
+        label: dataset.rollButtonLabel,
+        default: true,
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          if (CONFIG.HYP3E.flipRollUnderMods) {
+            Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Rolling ${dataset.roll} - ${formDataObj.sitMod}...`, formDataObj)
+          } else {
+            Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Rolling ${dataset.roll} + ${formDataObj.sitMod} ...`, formDataObj)
           }
-        },
-        default: "roll",
-        render: html => Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Register interactivity in the rendered dialog`),
-        close: html => Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Dialog closed`)
-      })
-      rollDialog.render(true)
+          return formDataObj
+        }
+      }, {
+        action: "cancel",
+        icon: "fas fa-times",
+        label: "Cancel",
+        callback: () => null
+      }],
+      rejectClose: false,
+      render: () => Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Register interactivity in the rendered dialog`),
+      close: () => Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Dialog closed`)
     })
+    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Roll canceled!`)
+    return requireDialogResult(result, "Basic roll dialog")
   }
 
   /**
@@ -88,39 +92,31 @@ export class Hyp3eDialog {
     const dialogHtml = await foundry.applications.handlebars.renderTemplate(template, dialogData)
 
     // Roll dialog for attacks
-    return new Promise((resolve, reject) => {
-      const rollDialog = new Dialog({
-        title: `${dataset.label}`,
-        content: dialogHtml,
-        buttons: {
-          roll: {
-            icon: '<i class="fas fa-dice-d20"></i>',
-            label: "Attack",
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Rolling ${dataset.roll} + ${formDataObj.sitMod}...`, formDataObj)
-              resolve(formDataObj)
-            }
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-            callback: (html) => {
-              Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Roll canceled!`);
-              reject()
-            }
-          }
-        },
-        default: "roll",
-        render: html => Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Register interactivity in the rendered dialog`),
-        close: html => Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Dialog closed`)
-      })
-      rollDialog.render(true)
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: `${dataset.label}` },
+      content: dialogHtml,
+      buttons: [{
+        action: "roll",
+        icon: "fas fa-dice-d20",
+        label: "Attack",
+        default: true,
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Rolling ${dataset.roll} + ${formDataObj.sitMod}...`, formDataObj)
+          return formDataObj
+        }
+      }, {
+        action: "cancel",
+        icon: "fas fa-times",
+        label: "Cancel",
+        callback: () => null
+      }],
+      rejectClose: false,
+      render: () => Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Register interactivity in the rendered dialog`),
+      close: () => Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Dialog closed`)
     })
+    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Roll canceled!`)
+    return requireDialogResult(result, "Attack roll dialog")
   }
 
   /**
@@ -145,39 +141,31 @@ export class Hyp3eDialog {
     const dialogHtml = await foundry.applications.handlebars.renderTemplate(template, dialogData)
 
     // Roll dialog for casting spells
-    return new Promise((resolve, reject) => {
-      const rollDialog = new Dialog({
-        title: `${dataset.label}`,
-        content: dialogHtml,
-        buttons: {
-          roll: {
-            icon: '<i class="fas fa-scroll"></i>',
-            label: "Cast Spell",
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Rolling ${dataset.roll} + ${formDataObj.sitMod}...`, formDataObj)
-              resolve(formDataObj)
-            }
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-            callback: (html) => {
-              Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Roll canceled!`)
-              reject()
-            }
-          }
-        },
-        default: "roll",
-        render: html => Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Register interactivity in the rendered dialog`),
-        close: html => Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Dialog closed`)
-      })
-      rollDialog.render(true)
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: `${dataset.label}` },
+      content: dialogHtml,
+      buttons: [{
+        action: "roll",
+        icon: "fas fa-scroll",
+        label: "Cast Spell",
+        default: true,
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Rolling ${dataset.roll} + ${formDataObj.sitMod}...`, formDataObj)
+          return formDataObj
+        }
+      }, {
+        action: "cancel",
+        icon: "fas fa-times",
+        label: "Cancel",
+        callback: () => null
+      }],
+      rejectClose: false,
+      render: () => Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Register interactivity in the rendered dialog`),
+      close: () => Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Dialog closed`)
     })
+    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Roll canceled!`)
+    return requireDialogResult(result, "Spellcasting dialog")
   }
   
   /**
@@ -201,81 +189,61 @@ export class Hyp3eDialog {
     const dialogHtml = await foundry.applications.handlebars.renderTemplate(template, dialogData)
 
     // Roll dialog for saving throws, with save modifiers
-    return new Promise((resolve, reject) => {
-      const rollDialog = new Dialog({
-        title: `${dataset.label}`,
-        content: dialogHtml,
-        buttons: {
-          roll: {
-            icon: '<i class="fas fa-dice-d20"></i>',
-            label: "Roll Save",
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling basic save: ${dataset.roll} + ${formDataObj.sitMod}...`, formDataObj)
-              resolve(formDataObj)
-            }
-          },
-          avoid: {
-            icon: '<i class="fas fa-dice-d20"></i>',
-            label: "Avoidance Mod",
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              formDataObj.avoidMod = dataset.avoidMod
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling save with Avoidance mod: ${dataset.roll} + ${formDataObj.avoidMod} + ${formDataObj.sitMod}...`, formDataObj)
-              resolve(formDataObj)
-            }
-          },
-          poison: {
-            icon: '<i class="fas fa-dice-d20"></i>',
-            label: "Poison/Rad Mod",
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              formDataObj.poisonMod = dataset.poisonMod
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling save with Poison/Radiation mod: ${dataset.roll} + ${formDataObj.poisonMod} + ${formDataObj.sitMod}...`, formDataObj)
-              resolve(formDataObj)
-            }
-          },
-          willpower: {
-            icon: '<i class="fas fa-dice-d20"></i>',
-            label: "Willpower Mod",
-            callback: (html) => {
-              const formElement = html[0].querySelector('form')
-              const formData = new foundry.applications.ux.FormDataExtended(formElement)
-              const formDataObj = formData.object
-              formDataObj.willMod = dataset.willMod
-              // No situational modifier? Set it to 0
-              if (formDataObj.sitMod == '') { formDataObj.sitMod = 0 }
-              Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling save with Willpower mod: ${dataset.roll} + ${formDataObj.willMod} + ${formDataObj.sitMod}...`, formDataObj)
-              resolve(formDataObj)
-            }
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-            callback: (html) => {
-              Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Roll canceled!`)
-              reject()
-            }
-          }
-        },
-        default: "roll",
-        render: html => Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Register interactivity in the rendered dialog`),
-        close: html => Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Dialog closed`)
-      })
-      rollDialog.render(true)
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: `${dataset.label}` },
+      content: dialogHtml,
+      buttons: [{
+        action: "roll",
+        icon: "fas fa-dice-d20",
+        label: "Roll Save",
+        default: true,
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling basic save: ${dataset.roll} + ${formDataObj.sitMod}...`, formDataObj)
+          return formDataObj
+        }
+      }, {
+        action: "avoid",
+        icon: "fas fa-dice-d20",
+        label: "Avoidance Mod",
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          formDataObj.avoidMod = dataset.avoidMod
+          Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling save with Avoidance mod: ${dataset.roll} + ${formDataObj.avoidMod} + ${formDataObj.sitMod}...`, formDataObj)
+          return formDataObj
+        }
+      }, {
+        action: "poison",
+        icon: "fas fa-dice-d20",
+        label: "Poison/Rad Mod",
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          formDataObj.poisonMod = dataset.poisonMod
+          Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling save with Poison/Radiation mod: ${dataset.roll} + ${formDataObj.poisonMod} + ${formDataObj.sitMod}...`, formDataObj)
+          return formDataObj
+        }
+      }, {
+        action: "willpower",
+        icon: "fas fa-dice-d20",
+        label: "Willpower Mod",
+        callback: (_event, button) => {
+          const formDataObj = getRollDialogFormData(button)
+          formDataObj.willMod = dataset.willMod
+          Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Rolling save with Willpower mod: ${dataset.roll} + ${formDataObj.willMod} + ${formDataObj.sitMod}...`, formDataObj)
+          return formDataObj
+        }
+      }, {
+        action: "cancel",
+        icon: "fas fa-times",
+        label: "Cancel",
+        callback: () => null
+      }],
+      rejectClose: false,
+      render: () => Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Register interactivity in the rendered dialog`),
+      close: () => Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Dialog closed`)
     })
+    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Roll canceled!`)
+    return requireDialogResult(result, "Save roll dialog")
   }
 
   /**
@@ -284,33 +252,27 @@ export class Hyp3eDialog {
    */
   static async ShowSetModifiersDialog() {
     // Dialog to confirm setting modifiers
-    return new Promise((resolve, reject) => {
-      new Dialog({
-        title: "Confirm set/reset attribute modifiers",
-        content: "Set attribute modifiers? This will replace any values already in place!",
-        buttons: {
-          confirm: {
-            label: "Confirm",
-            icon: `<i class="fas fa-check"></i>`,
-            callback: () => {
-              // Set/reset all attribute modifiers
-              resolve()
-            }
-          },
-          cancel: {
-            label: "Cancel",
-            icon: `<i class="fas fa-times"></i>`,
-            callback: () => {
-              ui.notifications.info("Hyp3eDialog Set attribute modifiers - canceled!")
-              reject()
-            }
-          }
-        },
-        default: "cancel",
-        render: html => Hyp3eLogger.info("Hyp3eDialog ShowSetModifiersDialog", `Register interactivity in the rendered dialog`),
-        close: html => Hyp3eLogger.info("Hyp3eDialog ShowSetModifiersDialog", `Dialog closed`)
-      }).render(true);
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Confirm set/reset attribute modifiers" },
+      content: "Set attribute modifiers? This will replace any values already in place!",
+      buttons: [{
+        action: "confirm",
+        label: "Confirm",
+        icon: "fas fa-check",
+        callback: () => true
+      }, {
+        action: "cancel",
+        label: "Cancel",
+        icon: "fas fa-times",
+        default: true,
+        callback: () => false
+      }],
+      rejectClose: false,
+      render: () => Hyp3eLogger.info("Hyp3eDialog ShowSetModifiersDialog", `Register interactivity in the rendered dialog`),
+      close: () => Hyp3eLogger.info("Hyp3eDialog ShowSetModifiersDialog", `Dialog closed`)
     })
+    if (result === false) ui.notifications.info("Hyp3eDialog Set attribute modifiers - canceled!")
+    if (result !== true) throw new Error("Set attribute modifiers dialog canceled")
   }
 
   /**
@@ -319,32 +281,26 @@ export class Hyp3eDialog {
    */
   static async ShowLevelUpDialog(dataset) {
     // Dialog to confirm setting modifiers
-    return new Promise((resolve, reject) => {
-      new Dialog({
-        title: "Confirm character level-up",
-        content: "Level up character? This will replace any values already in place!",
-        buttons: {
-          confirm: {
-            label: "Confirm",
-            icon: `<i class="fas fa-check"></i>`,
-            callback: () => {
-              // Set/reset all attribute modifiers
-              resolve()
-            }
-          },
-          cancel: {
-            label: "Cancel",
-            icon: `<i class="fas fa-times"></i>`,
-            callback: () => {
-              ui.notifications.info("Hyp3eDialog Level up character - canceled!")
-              reject()
-            }
-          }
-        },
-        default: "cancel",
-        render: html => Hyp3eLogger.info("Hyp3eDialog ShowLevelUpDialog", `Register interactivity in the rendered dialog`),
-        close: html => Hyp3eLogger.info("Hyp3eDialog ShowLevelUpDialog", `Dialog closed`)
-      }).render(true);
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Confirm character level-up" },
+      content: "Level up character? This will replace any values already in place!",
+      buttons: [{
+        action: "confirm",
+        label: "Confirm",
+        icon: "fas fa-check",
+        callback: () => true
+      }, {
+        action: "cancel",
+        label: "Cancel",
+        icon: "fas fa-times",
+        default: true,
+        callback: () => false
+      }],
+      rejectClose: false,
+      render: () => Hyp3eLogger.info("Hyp3eDialog ShowLevelUpDialog", `Register interactivity in the rendered dialog`),
+      close: () => Hyp3eLogger.info("Hyp3eDialog ShowLevelUpDialog", `Dialog closed`)
     })
+    if (result === false) ui.notifications.info("Hyp3eDialog Level up character - canceled!")
+    if (result !== true) throw new Error("Level up dialog canceled")
   }
 }

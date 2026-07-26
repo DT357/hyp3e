@@ -1058,23 +1058,26 @@ export class Hyp3eActorSheetV2 extends HandlebarsApplicationMixin(ActorSheetV2) 
             }));
             const optionsHtml = options.join("");
 
-            new Dialog({
-                title: "Choose Spell or Feature",
-                content: `<form><div class="form-group">
+            await foundry.applications.api.DialogV2.wait({
+                window: { title: "Choose Spell or Feature" },
+                content: `<div class="form-group">
                             <label>Spell</label>
-                            <select id="spell-choice">${optionsHtml}</select>
-                            </div></form>`,
-                buttons: {
-                    cast: {
-                        label: "Cast",
-                        callback: html => {
-                            const spellUuid = html.find("#spell-choice").val();
-                            this.actor.useItemSpell(item, spellUuid);
-                        }
-                    },
-                    cancel: { label: "Cancel" }
-                }
-            }).render(true);
+                            <select id="spell-choice" name="spellChoice">${optionsHtml}</select>
+                            </div>`,
+                buttons: [{
+                    action: "cast",
+                    label: "Cast",
+                    default: true,
+                    callback: (_event, button) => {
+                        const spellUuid = button.form.elements.spellChoice.value;
+                        return this.actor.useItemSpell(item, spellUuid);
+                    }
+                }, {
+                    action: "cancel",
+                    label: "Cancel"
+                }],
+                rejectClose: false
+            });
         }
     }
 
@@ -1130,31 +1133,27 @@ export class Hyp3eActorSheetV2 extends HandlebarsApplicationMixin(ActorSheetV2) 
         if (item.system.quantity.value === 2) {
             splitQty = 1;
         } else {
-            splitQty = await new Promise((resolve, reject) => {
-                new Dialog({
-                    title: `${game.i18n.localize("HYP3E.item.splitStack")}: ${item.name}`,
-                    content: `
-                        <form>
-                            <div class="form-group">
-                                <label>${game.i18n.format("HYP3E.item.splitStackPrompt", { max: maxSplit })}</label>
-                                <input type="number" name="splitQty" value="1" min="1" max="${maxSplit}" autofocus>
-                            </div>
-                        </form>`,
-                    buttons: {
-                        split: {
-                            icon: '<i class="fas fa-scissors"></i>',
-                            label: game.i18n.localize("HYP3E.item.splitStack"),
-                            callback: (html) => resolve(parseInt(html.find('[name="splitQty"]').val()))
-                        },
-                        cancel: {
-                            icon: '<i class="fas fa-times"></i>',
-                            label: "Cancel",
-                            callback: () => reject()
-                        }
-                    },
-                    default: "split"
-                }).render(true);
-            }).catch(() => null);
+            splitQty = await foundry.applications.api.DialogV2.wait({
+                window: { title: `${game.i18n.localize("HYP3E.item.splitStack")}: ${item.name}` },
+                content: `
+                    <div class="form-group">
+                        <label>${game.i18n.format("HYP3E.item.splitStackPrompt", { max: maxSplit })}</label>
+                        <input type="number" name="splitQty" value="1" min="1" max="${maxSplit}" autofocus>
+                    </div>`,
+                buttons: [{
+                    action: "split",
+                    icon: "fas fa-scissors",
+                    label: game.i18n.localize("HYP3E.item.splitStack"),
+                    default: true,
+                    callback: (_event, button) => parseInt(button.form.elements.splitQty.value)
+                }, {
+                    action: "cancel",
+                    icon: "fas fa-times",
+                    label: "Cancel",
+                    callback: () => null
+                }],
+                rejectClose: false
+            });
         }
 
         if (!splitQty || splitQty < 1 || splitQty >= item.system.quantity.value) return;

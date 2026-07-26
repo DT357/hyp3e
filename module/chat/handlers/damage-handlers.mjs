@@ -161,57 +161,56 @@ export async function handleApplyDamageButtons(html) {
       applyHealthChange(total*-1, damageType, false);
     });
 
-    fullDamageModifiedButton.on("click", (ev) => {
+    fullDamageModifiedButton.on("click", async (ev) => {
       ev.stopPropagation();
-      let buttons = {
-        yes: {
-          icon: "<i class='fas fa-check'></i>",
-          label: `Apply Modifier Above`,
-          callback: (html$) => {
-            const form = html$[0].querySelector("form");
-            const modifier = ((
-              form.querySelector('[name="inputField"]')
-            ))?.value;
-            if (modifier && modifier != "") {
-              const nModifier = Number(modifier);
-              if (nModifier) {
-                rollCriticalDamage(total + nModifier, "", damageType, applyDr);
-              } else {
-                ui.notifications?.error(modifier + " is not a number");
-              }
+      const buttons = [{
+        action: "yes",
+        icon: "fas fa-check",
+        label: `Apply Modifier Above`,
+        default: true,
+        callback: (_event, button) => {
+          const modifier = button.form.elements.inputField?.value;
+          if (modifier && modifier != "") {
+            const nModifier = Number(modifier);
+            if (nModifier) {
+              rollCriticalDamage(total + nModifier, "", damageType, applyDr);
+            } else {
+              ui.notifications?.error(modifier + " is not a number");
             }
           }
         }
-      };
+      }];
       if (sourceType === "weapon") {
-        buttons["two"] = {
-          icon: "<i class='fas fa-check'></i>",
+        buttons.push({
+          action: "two",
+          icon: "fas fa-check",
           label: `×2 Dice Dmg (roll only)`,
           callback: () => rollCriticalDamage(total, dieFormula, damageType, applyDr)
-        };
-        buttons["three"] = {
-          icon: "<i class='fas fa-check'></i>",
+        });
+        buttons.push({
+          action: "three",
+          icon: "fas fa-check",
           label: `×3 Dice Dmg (roll only)`,
           callback: () => rollCriticalDamage(total, `${dieFormula}+${dieFormula}`, damageType, applyDr)
-        };
-        buttons["four"] = {
-          icon: "<i class='fas fa-check'></i>",
+        });
+        buttons.push({
+          action: "four",
+          icon: "fas fa-check",
           label: `×4 Dice Dmg (roll only)`,
           callback: () => rollCriticalDamage(total, `${dieFormula}+${dieFormula}+${dieFormula}`, damageType, applyDr)
-        };
+        });
       }
-      new Dialog({
-        title: "Apply Modifier to Damage",
+      await foundry.applications.api.DialogV2.wait({
+        window: { title: "Apply Modifier to Damage" },
         content: `
-          <form>
           <div class="form-group">
             <label>Modifier to damage (${total}) </label>
-            <input type='text' name='inputField'></input>
+            <input type="text" name="inputField">
           </div>
-          </form>`,
+          `,
         buttons,
-        default: "yes",
-      }).render(true);
+        rejectClose: false
+      });
     });
   });
 

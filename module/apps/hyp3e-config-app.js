@@ -176,22 +176,22 @@ export class Hyp3eConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
             }
         }
         if (requiresReload) {
-            new Dialog({
-                title: "Reload Required",
+            await foundry.applications.api.DialogV2.wait({
+                window: { title: "Reload Required" },
                 content: `<p>Some settings changes require a reload to take effect. Reload now?</p>`,
-                buttons: {
-                    yes: {
-                        icon: "<i class='fas fa-check'></i>",
-                        label: "Reload",
-                        callback: () => window.location.reload()
-                    },
-                    no: {
-                        icon: "<i class='fas fa-times'></i>",
-                        label: "Later"
-                    }
-                },
-                default: "yes"
-            }).render(true);
+                buttons: [{
+                    action: "yes",
+                    icon: "fas fa-check",
+                    label: "Reload",
+                    default: true,
+                    callback: () => window.location.reload()
+                }, {
+                    action: "no",
+                    icon: "fas fa-times",
+                    label: "Later"
+                }],
+                rejectClose: false
+            });
         } else if (updated) {
             ui.notifications.info("Hyperborea Configuration Settings saved.");
             this.close();
