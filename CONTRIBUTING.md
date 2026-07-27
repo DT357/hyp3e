@@ -32,6 +32,8 @@ Create a branch for your contribution:
 - Follow the coding style of the project.
 - Ensure any new functionality is covered with appropriate tests.
 - Keep your changes focused on a single task to make reviews easier.
+- Edit the checked-in files under `css/` directly. CSS is the canonical source;
+  there is no SCSS compilation or package-installation step.
 
 ### 5. Commit Your Changes
 - Write clear, descriptive commit messages. Use Conventional Commits format if applicable:
@@ -42,7 +44,15 @@ Create a branch for your contribution:
 - Ensure your commits are atomic and focused.
 
 ### 6. Test Your Changes
-Make sure to test and confirm that your changes do not break existing functionality. Test in _all_ supported versions of Foundry (currently v11 & v12).
+Automated tests use Node's built-in test runner and require no third-party
+packages. Use a currently supported Node.js release and run:
+
+```bash
+node --test
+```
+
+Also test and confirm that your changes do not break existing functionality in
+all supported Foundry versions (currently v13 and v14).
 
 ### 7. Push Your Changes
 Once your changes are ready, push them to your fork:

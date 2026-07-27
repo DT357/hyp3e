@@ -3,9 +3,11 @@
 jsconfig.json
 foundry
 
+# Node
+node_modules/
+npm-debug.log*
+
 .DS_Store
 .env
-.npmignore
-.nvmrc
 .venv/
 .vscode/
