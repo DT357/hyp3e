@@ -9,8 +9,12 @@ function getRollDialogFormData(button) {
   return formDataObj
 }
 
+function isDialogCancelled(result) {
+  return result === null || result === false || result === "cancel"
+}
+
 function requireDialogResult(result, dialogName) {
-  if (result !== null) return result
+  if (!isDialogCancelled(result)) return result
   throw new Error(`${dialogName} canceled`)
 }
 
@@ -56,13 +60,13 @@ export class Hyp3eDialog {
         action: "cancel",
         icon: "fas fa-times",
         label: "Cancel",
-        callback: () => null
+        callback: () => false
       }],
       rejectClose: false,
       render: () => Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Register interactivity in the rendered dialog`),
       close: () => Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Dialog closed`)
     })
-    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Roll canceled!`)
+    if (isDialogCancelled(result)) Hyp3eLogger.info("Hyp3eDialog ShowBasicRollDialog", `Roll canceled!`)
     return requireDialogResult(result, "Basic roll dialog")
   }
 
@@ -109,13 +113,13 @@ export class Hyp3eDialog {
         action: "cancel",
         icon: "fas fa-times",
         label: "Cancel",
-        callback: () => null
+        callback: () => false
       }],
       rejectClose: false,
       render: () => Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Register interactivity in the rendered dialog`),
       close: () => Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Dialog closed`)
     })
-    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Roll canceled!`)
+    if (isDialogCancelled(result)) Hyp3eLogger.info("Hyp3eDialog ShowAttackRollDialog", `Roll canceled!`)
     return requireDialogResult(result, "Attack roll dialog")
   }
 
@@ -158,13 +162,13 @@ export class Hyp3eDialog {
         action: "cancel",
         icon: "fas fa-times",
         label: "Cancel",
-        callback: () => null
+        callback: () => false
       }],
       rejectClose: false,
       render: () => Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Register interactivity in the rendered dialog`),
       close: () => Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Dialog closed`)
     })
-    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Roll canceled!`)
+    if (isDialogCancelled(result)) Hyp3eLogger.info("Hyp3eDialog ShowSpellcastingDialog", `Roll canceled!`)
     return requireDialogResult(result, "Spellcasting dialog")
   }
   
@@ -236,13 +240,13 @@ export class Hyp3eDialog {
         action: "cancel",
         icon: "fas fa-times",
         label: "Cancel",
-        callback: () => null
+        callback: () => false
       }],
       rejectClose: false,
       render: () => Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Register interactivity in the rendered dialog`),
       close: () => Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Dialog closed`)
     })
-    if (result === null) Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Roll canceled!`)
+    if (isDialogCancelled(result)) Hyp3eLogger.info("Hyp3eDialog ShowSaveRollDialog", `Roll canceled!`)
     return requireDialogResult(result, "Save roll dialog")
   }
 

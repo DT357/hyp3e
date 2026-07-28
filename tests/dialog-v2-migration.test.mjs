@@ -63,7 +63,11 @@ test("basic rolls use the DialogV2 form and preserve cancellation behavior", asy
         DialogV2: {
           wait: async config => {
             dialogConfigs.push(config);
-            if (dialogConfigs.length > 1) return null;
+            if (dialogConfigs.length > 1) {
+              const cancelButton = config.buttons.find(button => button.action === "cancel");
+              const callbackResult = cancelButton.callback(null, { form });
+              return callbackResult ?? cancelButton.action;
+            }
             const rollButton = config.buttons.find(button => button.action === "roll");
             return rollButton.callback(null, { form });
           }
@@ -97,10 +101,24 @@ test("basic rolls use the DialogV2 form and preserve cancellation behavior", asy
     assert.equal(dialogConfigs[0].buttons[0].default, true);
     assert.equal(dialogConfigs[0].rejectClose, false);
 
-    await assert.rejects(
-      Hyp3eDialog.ShowBasicRollDialog(dataset),
-      /Basic roll dialog canceled/
-    );
+    const cancellationCases = [
+      ["ShowBasicRollDialog", /Basic roll dialog canceled/],
+      ["ShowAttackRollDialog", /Attack roll dialog canceled/],
+      ["ShowSpellcastingDialog", /Spellcasting dialog canceled/],
+      ["ShowSaveRollDialog", /Save roll dialog canceled/]
+    ];
+
+    for (const [method, expectedError] of cancellationCases) {
+      await assert.rejects(
+        Hyp3eDialog[method](dataset),
+        expectedError
+      );
+    }
+
+    for (const dialogConfig of dialogConfigs.slice(1)) {
+      const cancelButton = dialogConfig.buttons.find(button => button.action === "cancel");
+      assert.equal(cancelButton.callback(), false);
+    }
   } finally {
     if (originalConfig === undefined) delete globalThis.CONFIG;
     else globalThis.CONFIG = originalConfig;
